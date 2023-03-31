@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.webkit.PermissionRequest
@@ -15,17 +16,28 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.karumi.dexter.Dexter
-import com.karumi.dexter.DexterBuilder
-import com.karumi.dexter.MultiplePermissionsReport
-import com.karumi.dexter.PermissionToken
-import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import androidx.databinding.DataBindingUtil
+import com.example.imageclassification.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+    private val pickImage = 100
+    private var imageUri: Uri? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = DataBindingUtil.setContentView(this,R.layout.activity_main)
+        binding.uploadBtn.setOnClickListener {
+            val gallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI)
+            startActivityForResult(gallery, pickImage)
+        }
         managePermissions()
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK && requestCode == pickImage) {
+            imageUri = data?.data
+            binding.imageView.setImageURI(imageUri)
+        }
     }
 
     private fun managePermissions() {
@@ -33,15 +45,12 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.CAMERA,
             Manifest.permission.READ_EXTERNAL_STORAGE
         )
-        //launcher permissions request dialog
         permissionLauncherMultiple.launch(permissions)
     }
 
     private val permissionLauncherMultiple = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
-        //here we will check if permissions were now (from permission request dialog) or already granted or not
-
         var allAreGranted = true
         for (isGranted in result.values) {
             Log.d(TAG, "onActivityResult: isGranted: $isGranted")
@@ -49,16 +58,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (allAreGranted) {
-            //All Permissions granted now do the required task here or call the function for that
             multiplePermissionsGranted()
         } else {
-            //All or some Permissions were denied so can't do the task that requires that permission
             Log.d(TAG, "onActivityResult: All or some permissions denied...")
             Toast.makeText(this@MainActivity, "All or some permissions denied...", Toast.LENGTH_SHORT).show()
         }
     }
     private fun multiplePermissionsGranted() {
-        //Do the required task here, i'll just set the text to the TextView i.e. resultTv. You can do whatever you want
         Toast.makeText(this,"Permission Granted",Toast.LENGTH_LONG).show()
     }
 
